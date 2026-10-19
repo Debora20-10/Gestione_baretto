@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#eaf6fc" />
+    <title>Menu - Gestione Baretto</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="menu-page">
+    <main class="menu-shell">
+      <header class="menu-header">
+        <a class="menu-brand" href="/" aria-label="Gestione Baretto, pagina ordini">
+          <span class="menu-brand-mark" aria-hidden="true">B</span>
+          <span>Gestione Baretto</span>
+        </a>
+        <nav class="menu-navigation" aria-label="Navigazione">
+          <a href="/">Ordini in corso</a>
+          <a class="menu-cart-link" href="#cart">Carrello <span id="cartCount">0</span></a>
+        </nav>
+      </header>
+
+      <section class="menu-intro" aria-labelledby="menuTitle">
+        <div>
+          <p class="menu-kicker">Fatto al momento</p>
+          <h1 id="menuTitle">Una pausa fatta bene.</h1>
+        </div>
+        <p>Colazione,pranzo, caffè e qualcosa di buono: scegli dal menu e ritira al banco.</p>
+      </section>
+
+      <div class="menu-layout">
+        <section class="menu-products" aria-labelledby="productsTitle">
+          <div class="menu-section-heading">
+            <div>
+              <p class="menu-kicker">Il banco</p>
+              <h2 id="productsTitle">Scegli qualcosa</h2>
+            </div>
+            <span id="productCount" class="menu-product-count" aria-live="polite"></span>
+          </div>
+          <div id="categoryFilters" class="category-filters" role="group" aria-label="Filtra per categoria"></div>
+          <p id="menuMessage" class="menu-message" role="status" hidden></p>
+          <div id="menuGrid" class="menu-grid" aria-live="polite"></div>
+        </section>
+
+        <aside id="cart" class="cart-panel" aria-labelledby="cartTitle">
+          <div class="cart-heading">
+            <div>
+              <p class="menu-kicker">Da gustare</p>
+              <h2 id="cartTitle">Il tuo ordine</h2>
+            </div>
+            <span id="cartSummaryCount" class="cart-summary-count">0 articoli</span>
+          </div>
+
+          <p id="cartEmpty" class="cart-empty">Il carrello è ancora vuoto.</p>
+          <ul id="cartList" class="cart-list"></ul>
+
+          <div class="cart-total">
+            <span>Totale</span>
+            <strong id="cartTotal">€ 0,00</strong>
+          </div>
+
+          <form id="checkoutForm" class="checkout-form">
+            <fieldset>
+              <legend>Metodo di pagamento</legend>
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="contanti" checked />
+                <span class="payment-option-icon" aria-hidden="true">€</span>
+                <span><strong>Contanti</strong><small>Al ritiro</small></span>
+              </label>
+              <label class="payment-option">
+                <input type="radio" name="paymentMethod" value="carta" />
+                <span class="payment-option-icon" aria-hidden="true">▭</span>
+                <span><strong>Carta</strong><small>Al ritiro</small></span>
+              </label>
+            </fieldset>
+            <p class="payment-note">Il pagamento avviene al banco, al ritiro dell’ordine.</p>
+            <p id="checkoutFeedback" class="checkout-feedback" role="status" aria-live="polite"></p>
+            <button id="checkoutButton" class="checkout-button" type="submit" disabled>
+              Conferma ordine
+            </button>
+          </form>
+
+          <section id="orderConfirmation" class="order-confirmation" aria-live="polite" hidden>
+            <span class="confirmation-mark" aria-hidden="true">✓</span>
+            <h3>Ordine ricevuto</h3>
+            <p id="confirmationDetails"></p>
+            <a href="/">Segui l’avanzamento</a>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <script src="/menu.js" defer></script>
+  </body>
+</html>

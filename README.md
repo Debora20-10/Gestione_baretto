@@ -24,9 +24,11 @@ DB_USER=utente
 DB_PASSWORD=password
 DB_NAME=baretto
 PORT=3000
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=sostituisci-con-una-password-lunga
 ```
 
-`PORT` è facoltativa e predefinita a `3000`. Gli altri valori corrispondono alla configurazione di sviluppo in `docker-compose.yml`. Se modifichi utente o password, aggiorna anche le variabili `MYSQL_USER` e `MYSQL_PASSWORD` del servizio MySQL. Non condividere né aggiungere al controllo versione il file `.env`.
+`PORT` è facoltativa e predefinita a `3000`. Gli altri valori DB corrispondono alla configurazione di sviluppo in `docker-compose.yml`. Se modifichi utente o password, aggiorna anche le variabili `MYSQL_USER` e `MYSQL_PASSWORD` del servizio MySQL. Sostituisci le credenziali admin di esempio con valori personali e non condividere né aggiungere al controllo versione il file `.env`.
 
 ## Avvio
 
@@ -48,7 +50,7 @@ Quando il comando risponde `mysqld is alive`, avvia Express:
 npm start
 ```
 
-All'avvio vengono create o verificate le tabelle `prodotti`, `personale` e `ordini`; quelle già esistenti non vengono svuotate. Il server resta in ascolto su `http://localhost:3000` (o sulla porta impostata in `PORT`). La cartella `public` è servita alla radice e `GET /api/health` verifica anche la connessione al database:
+All'avvio vengono create o verificate le tabelle `prodotti`, `personale` e `ordini`. Se tutte e tre sono vuote, vengono inseriti dati dimostrativi; i dati già presenti non vengono modificati. Il server resta in ascolto su `http://localhost:3000` (o sulla porta impostata in `PORT`). La pagina pubblica degli ordini è disponibile alla radice `/`; il pannello admin è su `/admin` e si può aprire con il pulsante **Accesso admin** nella pagina pubblica, usando le credenziali `ADMIN_USERNAME` e `ADMIN_PASSWORD` configurate in `.env`. Il login crea una sessione valida per otto ore. Le API `GET /api/prodotti`, `GET /api/personale` e `GET /api/ordini` sono riservate all'admin. La vista pubblica usa `GET /api/public/ordini`, che non restituisce note, prezzi o dati del personale. `GET /api/health` verifica la connessione al database:
 
 ```sh
 curl http://localhost:3000/api/health
@@ -67,7 +69,3 @@ Per controllare direttamente le tabelle del database:
 ```bash
 docker exec -it mysql-dev mysql -uutente -ppassword -Dbaretto
 ```
-
-## Stato dell'applicazione
-
-Al momento `npm start` esegue solo l'inizializzazione del database e termina; il server HTTP/API e l'interfaccia web non sono ancora implementati.

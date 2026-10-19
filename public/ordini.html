@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#eaf6fc" />
+    <title>Avanzamento ordini - Gestione Baretto</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="dashboard order-monitor">
+      <header class="topbar monitor-heading">
+        <div>
+          <p class="eyebrow">Gestione Baretto</p>
+          <h1>Avanzamento ordini</h1>
+        </div>
+        <div class="monitor-tools">
+          <p class="monitor-updated" id="lastUpdated" aria-live="polite">Caricamento...</p>
+          <a class="menu-entry" href="/menu">Menu e ordina</a>
+          <button class="admin-access" id="adminLoginButton" type="button">Accesso admin</button>
+        </div>
+      </header>
+
+      <dialog class="admin-login-dialog" id="adminLoginDialog" aria-labelledby="adminLoginTitle">
+        <form class="admin-login-form" id="adminLoginForm">
+          <h2 id="adminLoginTitle">Accesso admin</h2>
+          <label>
+            Utente
+            <input name="username" type="text" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <p class="admin-login-error" id="adminLoginError" role="alert" hidden></p>
+          <div class="admin-login-actions">
+            <button class="admin-login-cancel" id="adminLoginCancel" type="button">Annulla</button>
+            <button type="submit">Accedi</button>
+          </div>
+        </form>
+      </dialog>
+
+      <p class="monitor-message" id="loadMessage" role="status" hidden></p>
+
+      <div class="order-columns">
+        <section class="order-lane" aria-labelledby="waitingTitle">
+          <header class="lane-heading">
+            <h2 id="waitingTitle">In attesa</h2>
+            <span class="lane-count" id="waitingCount">0</span>
+          </header>
+          <ul class="order-list" id="waitingOrders"></ul>
+        </section>
+
+        <section class="order-lane" aria-labelledby="preparingTitle">
+          <header class="lane-heading">
+            <h2 id="preparingTitle">In preparazione</h2>
+            <span class="lane-count" id="preparingCount">0</span>
+          </header>
+          <ul class="order-list" id="preparingOrders"></ul>
+        </section>
+
+        <section class="order-lane" aria-labelledby="completedTitle">
+          <header class="lane-heading">
+            <h2 id="completedTitle">Completati</h2>
+            <span class="lane-count" id="completedCount">0</span>
+          </header>
+          <ul class="order-list" id="completedOrders"></ul>
+        </section>
+
+        <section class="order-lane" aria-labelledby="cancelledTitle">
+          <header class="lane-heading">
+            <h2 id="cancelledTitle">Annullati</h2>
+            <span class="lane-count" id="cancelledCount">0</span>
+          </header>
+          <ul class="order-list" id="cancelledOrders"></ul>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const orderStates = {
+        in_attesa: {
+          label: 'In attesa',
+          stage: 0,
+          list: 'waitingOrders',
+          count: 'waitingCount',
+        },
+        in_preparazione: {
+          label: 'In preparazione',
+          stage: 1,
+          list: 'preparingOrders',
+          count: 'preparingCount',
+        },
+        completato: {
+          label: 'Completato',
+          stage: 2,
+          list: 'completedOrders',
+          count: 'completedCount',
+        },
+        annullato: {
+          label: 'Annullato',
+          list: 'cancelledOrders',
+          count: 'cancelledCount',
+        },
+      };
+
+      const stepLabels = ['In attesa', 'In preparazione', 'Completato'];
+      const loadMessage = document.querySelector('#loadMessage');
+      const lastUpdated = document.querySelector('#lastUpdated');
+      const adminLoginDialog = document.querySelector('#adminLoginDialog');
+      const adminLoginForm = document.querySelector('#adminLoginForm');
+      const adminLoginError = document.querySelector('#adminLoginError');
+      let isLoading = false;
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[character]);
+      }
+
+      function renderProgress(order, stage) {
+        const progress = Math.round((stage / (stepLabels.length - 1)) * 76);
+        const steps = stepLabels.map((label, index) => {
+          const stepClass = index < stage ? 'is-done' : index === stage ? 'is-current' : '';
+          return `
+            <li class="progress-step ${stepClass}">
+              <span class="progress-dot" aria-hidden="true"></span>
+              <span>${label}</span>
+            </li>
+          `;
+        }).join('');
+
+        return `
+          <ol class="progress-track" role="progressbar"
+            aria-label="Avanzamento ordine ${escapeHtml(order.id)}"
+            aria-valuemin="1" aria-valuemax="3" aria-valuenow="${stage + 1}"
+            style="--progress-width: ${progress}%">
+            <span class="progress-fill" aria-hidden="true"></span>
+            ${steps}
+          </ol>
+        `;
+      }
+
+      function renderOrder(order) {
+        const state = orderStates[order.stato];
+        const progress = state.stage === undefined
+          ? '<p class="cancelled-message">Avanzamento interrotto</p>'
+          : renderProgress(order, state.stage);
+
+        return `
+          <li>
+            <article class="order-ticket" data-status="${escapeHtml(order.stato)}">
+              <header class="ticket-heading">
+                <span class="ticket-number">Ordine #${escapeHtml(order.id)}</span>
+                <span class="ticket-status">${state.label}</span>
+              </header>
+              <h3 class="ticket-product">${escapeHtml(order.prodotto_nome)}</h3>
+              <p class="ticket-quantity">Quantità: ${escapeHtml(order.quantita)}</p>
+              ${progress}
+            </article>
+          </li>
+        `;
+      }
+
+      function renderOrders(orders) {
+        const groupedOrders = Object.fromEntries(
+          Object.values(orderStates).map((state) => [state.list, []])
+        );
+
+        orders.forEach((order) => {
+          const state = orderStates[order.stato];
+          if (state) groupedOrders[state.list].push(order);
+        });
+
+        Object.values(orderStates).forEach((state) => {
+          const items = groupedOrders[state.list];
+          document.querySelector(`#${state.count}`).textContent = items.length;
+          document.querySelector(`#${state.list}`).innerHTML = items.length
+            ? items.map(renderOrder).join('')
+            : '<li class="lane-empty">Nessun ordine</li>';
+        });
+      }
+
+      async function loadOrders() {
+        if (isLoading) return;
+        isLoading = true;
+
+        try {
+          const response = await fetch('/api/public/ordini', { cache: 'no-store' });
+          if (!response.ok) throw new Error('Risposta non valida');
+
+          const orders = await response.json();
+          renderOrders(orders);
+          loadMessage.hidden = true;
+          lastUpdated.textContent = new Intl.DateTimeFormat('it-IT', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }).format(new Date());
+        } catch {
+          loadMessage.textContent = 'Impossibile caricare gli ordini. Riprovo automaticamente.';
+          loadMessage.hidden = false;
+        } finally {
+          isLoading = false;
+        }
+      }
+
+      document.querySelector('#adminLoginButton').addEventListener('click', () => {
+        adminLoginError.hidden = true;
+        adminLoginDialog.showModal();
+      });
+
+      document.querySelector('#adminLoginCancel').addEventListener('click', () => {
+        adminLoginDialog.close();
+      });
+
+      adminLoginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitButton = adminLoginForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        adminLoginError.hidden = true;
+
+        try {
+          const formData = new FormData(adminLoginForm);
+          const response = await fetch('/api/admin/login', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: formData.get('username'),
+              password: formData.get('password'),
+            }),
+          });
+
+          if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.message || 'Accesso non riuscito.');
+          }
+
+          window.location.assign('/admin');
+        } catch (error) {
+          adminLoginError.textContent = error.message || 'Impossibile contattare il server.';
+          adminLoginError.hidden = false;
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+
+      loadOrders();
+      window.setInterval(loadOrders, 15000);
+    </script>
+  </body>
+</html>

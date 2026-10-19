@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pannello Admin - Gestione Baretto</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="dashboard">
+      <header class="topbar admin-heading">
+        <div>
+          <p class="eyebrow">Gestione Baretto</p>
+          <h1>Pannello di controllo admin</h1>
+        </div>
+        <form action="/api/admin/logout" method="post">
+          <button class="admin-logout" type="submit">Esci alla pagina pubblica</button>
+        </form>
+      </header>
+
+      <section class="panel">
+        <h2>Prodotti</h2>
+        <form id="prodottoForm" class="form-grid">
+          <label>
+            Nome
+            <input type="text" name="nome" required />
+          </label>
+          <label>
+            Categoria
+            <input type="text" name="categoria" />
+          </label>
+          <label>
+            Prezzo (€)
+            <input type="number" name="prezzo" step="0.01" min="0" required />
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" name="disponibile" checked />
+            Disponibile
+          </label>
+          <label class="full-width">
+            Descrizione
+            <textarea name="descrizione" rows="3"></textarea>
+          </label>
+          <button type="submit">Aggiungi prodotto</button>
+        </form>
+        <div class="list-wrapper">
+          <h3>Elenco prodotti</h3>
+          <ul id="prodottiList" class="item-list"></ul>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Personale</h2>
+        <form id="personaleForm" class="form-grid">
+          <label>
+            Nome
+            <input type="text" name="nome" required />
+          </label>
+          <label>
+            Cognome
+            <input type="text" name="cognome" required />
+          </label>
+          <label>
+            Ruolo
+            <input type="text" name="ruolo" required />
+          </label>
+          <label>
+            Email
+            <input type="email" name="email" />
+          </label>
+          <label>
+            Telefono
+            <input type="text" name="telefono" />
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" name="attivo" checked />
+            Attivo
+          </label>
+          <button type="submit">Aggiungi personale</button>
+        </form>
+        <div class="list-wrapper">
+          <h3>Elenco personale</h3>
+          <ul id="personaleList" class="item-list"></ul>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Ordini</h2>
+        <form id="ordineForm" class="form-grid">
+          <label>
+            Prodotto
+            <select name="prodotto_id" required></select>
+          </label>
+          <label>
+            Personale
+            <select name="personale_id">
+              <option value="">Nessun addetto</option>
+            </select>
+          </label>
+          <label>
+            Quantità
+            <input type="number" name="quantita" min="1" value="1" required />
+          </label>
+          <label>
+            Prezzo unitario (€)
+            <input type="number" name="prezzo_unitario" step="0.01" min="0" required />
+          </label>
+          <label>
+            Stato
+            <select name="stato">
+              <option value="in_attesa">In attesa</option>
+              <option value="in_preparazione">In preparazione</option>
+              <option value="completato">Completato</option>
+              <option value="annullato">Annullato</option>
+            </select>
+          </label>
+          <label class="full-width">
+            Nota
+            <textarea name="note" rows="3"></textarea>
+          </label>
+          <button type="submit">Aggiungi ordine</button>
+        </form>
+        <div class="list-wrapper">
+          <h3>Elenco ordini</h3>
+          <ul id="ordiniList" class="item-list"></ul>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const prodottiList = document.querySelector('#prodottiList');
+      const personaleList = document.querySelector('#personaleList');
+      const ordiniList = document.querySelector('#ordiniList');
+      const prodottoSelect = document.querySelector('select[name="prodotto_id"]');
+      const personaleSelect = document.querySelector('select[name="personale_id"]');
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, {
+          headers: { 'Content-Type': 'application/json' },
+          ...options,
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const data = contentType.includes('application/json') ? await response.json() : {};
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Errore nella richiesta');
+        }
+
+        return data;
+      }
+
+      function renderProdotti(items) {
+        if (!items.length) {
+          prodottiList.innerHTML = '<li>Nessun prodotto inserito.</li>';
+          return;
+        }
+
+        prodottiList.innerHTML = items
+          .map(
+            (item) => `
+              <li>
+                <strong>${item.nome}</strong>
+                <span>${item.categoria || 'Generica'}</span>
+                <span>€ ${Number(item.prezzo).toFixed(2)}</span>
+                <span>${item.disponibile ? 'Disponibile' : 'Non disponibile'}</span>
+              </li>
+            `
+          )
+          .join('');
+      }
+
+      function renderPersonale(items) {
+        if (!items.length) {
+          personaleList.innerHTML = '<li>Nessun membro del personale inserito.</li>';
+          return;
+        }
+
+        personaleList.innerHTML = items
+          .map(
+            (item) => `
+              <li>
+                <strong>${item.nome} ${item.cognome}</strong>
+                <span>${item.ruolo}</span>
+                <span>${item.attivo ? 'Attivo' : 'Non attivo'}</span>
+              </li>
+            `
+          )
+          .join('');
+      }
+
+      function renderOrdini(items) {
+        if (!items.length) {
+          ordiniList.innerHTML = '<li>Nessun ordine inserito.</li>';
+          return;
+        }
+
+        ordiniList.innerHTML = items
+          .map(
+            (item) => `
+              <li>
+                <strong>${item.prodotto_nome}</strong>
+                <span>${item.quantita} x € ${Number(item.prezzo_unitario).toFixed(2)}</span>
+                <span>${item.personale_nome ? `${item.personale_nome} ${item.personale_cognome || ''}` : 'Nessun addetto'}</span>
+                <span>Pagamento: ${item.metodo_pagamento === 'carta' ? 'Carta al banco' : item.metodo_pagamento === 'contanti' ? 'Contanti' : 'Da definire'}</span>
+                <span>${item.stato}</span>
+              </li>
+            `
+          )
+          .join('');
+      }
+
+      function populateSelects(prodotti, personale) {
+        prodottoSelect.innerHTML = '<option value="">Seleziona prodotto</option>' +
+          prodotti.map((item) => `<option value="${item.id}">${item.nome}</option>`).join('');
+
+        personaleSelect.innerHTML = '<option value="">Nessun addetto</option>' +
+          personale.map((item) => `<option value="${item.id}">${item.nome} ${item.cognome}</option>`).join('');
+      }
+
+      async function loadData() {
+        const [prodotti, personale, ordini] = await Promise.all([
+          fetchJson('/api/prodotti'),
+          fetchJson('/api/personale'),
+          fetchJson('/api/ordini'),
+        ]);
+
+        renderProdotti(prodotti);
+        renderPersonale(personale);
+        renderOrdini(ordini);
+        populateSelects(prodotti, personale);
+      }
+
+      document.querySelector('#prodottoForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(event.currentTarget);
+        const payload = {
+          nome: formData.get('nome'),
+          descrizione: formData.get('descrizione'),
+          categoria: formData.get('categoria'),
+          prezzo: Number(formData.get('prezzo')),
+          disponibile: formData.get('disponibile') === 'on',
+        };
+
+        await fetchJson('/api/prodotti', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+
+        event.currentTarget.reset();
+        await loadData();
+      });
+
+      document.querySelector('#personaleForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(event.currentTarget);
+        const payload = {
+          nome: formData.get('nome'),
+          cognome: formData.get('cognome'),
+          ruolo: formData.get('ruolo'),
+          email: formData.get('email'),
+          telefono: formData.get('telefono'),
+          attivo: formData.get('attivo') === 'on',
+        };
+
+        await fetchJson('/api/personale', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+
+        event.currentTarget.reset();
+        await loadData();
+      });
+
+      document.querySelector('#ordineForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(event.currentTarget);
+        const payload = {
+          prodotto_id: Number(formData.get('prodotto_id')),
+          personale_id: formData.get('personale_id') ? Number(formData.get('personale_id')) : null,
+          quantita: Number(formData.get('quantita')),
+          prezzo_unitario: Number(formData.get('prezzo_unitario')),
+          stato: formData.get('stato'),
+          note: formData.get('note'),
+        };
+
+        await fetchJson('/api/ordini', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+
+        event.currentTarget.reset();
+        await loadData();
+      });
+
+      loadData().catch((error) => {
+        console.error(error);
+        prodottiList.innerHTML = '<li>Errore nel caricamento dei dati.</li>';
+      });
+    </script>
+  </body>
+</html>
