@@ -4,7 +4,7 @@ Applicazione per la gestione di un bar. Il progetto usa Node.js, Express e MySQL
 
 ## Requisiti
 
-- Node.js 20.6 o successivo e npm
+- Node.js 24 o successivo e npm
 - Docker con Docker Compose v2
 
 ## Configurazione

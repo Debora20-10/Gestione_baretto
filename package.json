@@ -8,6 +8,9 @@
     "dev": "docker compose up -d && node server.js",
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=24"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stefanolazzari/gestione-baretto.git"
